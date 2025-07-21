@@ -14,25 +14,44 @@ import {
   TouchableOpacity,
 } from "react-native";
 
-export default function Login({ navigation, setLoggedIN }) {
+export default function Register({ navigation }) {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [email, setEmail] = useState("");
   const [errors, setErrors] = useState({});
 
   const validate = () => {
     let tempErrors = {};
-    if (password.length < 6)
+    
+    if (!username.trim()) {
+      tempErrors.username = "Username is required";
+    }
+    
+    if (password.length < 6) {
       tempErrors.password = "Password must be at least 6 characters";
+    }
+    
+    if (password !== confirmPassword) {
+      tempErrors.confirmPassword = "Passwords do not match";
+    }
+    
+    if (!email.trim()) {
+      tempErrors.email = "Email is required";
+    } else if (!/\S+@\S+\.\S+/.test(email)) {
+      tempErrors.email = "Email is invalid";
+    }
+    
     setErrors(tempErrors);
-
     return Object.keys(tempErrors).length === 0;
   };
 
-  const handleLogin = async () => {
+  const handleRegister = async () => {
     if (!validate()) return;
-    console.log("Validation passed. Sending request to server...");
+    
+    console.log("Validation passed. Sending registration request...");
     try {
-      const response = await fetch("https://omer.chipim.com/server/login", {
+      const response = await fetch("https://omer.chipim.com/server/register", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -40,26 +59,34 @@ export default function Login({ navigation, setLoggedIN }) {
         body: JSON.stringify({
           username: username,
           password: password,
+          email: email,
         }),
       });
 
       const data = await response.json();
 
       if (response.ok) {
-        Alert.alert("Login Successful", data.message);
-        setLoggedIN(true);
+        Alert.alert(
+          "Registration Successful", 
+          data.message,
+          [
+            {
+              text: "OK",
+              onPress: () => navigation.navigate('Login')
+            }
+          ]
+        );
       } else {
-        Alert.alert("Login Failed", data.message);
+        Alert.alert("Registration Failed", data.message);
       }
     } catch (error) {
-      console.error("Login error", error);
+      console.error("Registration error", error);
       Alert.alert("Error", "Unable to connect to the server.");
     }
   };
 
-  const handleRegister = () => {
-    // Navigate to Register screen
-    navigation.navigate('Register');
+  const goToLogin = () => {
+    navigation.navigate('Login');
   };
 
   return (
@@ -73,7 +100,7 @@ export default function Login({ navigation, setLoggedIN }) {
           contentContainerStyle={styles.container}
           keyboardShouldPersistTaps="handled"
         >
-          <Text style={styles.title}>Login</Text>
+          <Text style={styles.title}>Register</Text>
 
           <TextInput
             style={styles.input}
@@ -82,6 +109,21 @@ export default function Login({ navigation, setLoggedIN }) {
             autoCapitalize="none"
             onChangeText={setUsername}
           />
+          {errors.username && (
+            <Text style={styles.error}>{errors.username}</Text>
+          )}
+
+          <TextInput
+            style={styles.input}
+            placeholder="Email"
+            value={email}
+            autoCapitalize="none"
+            keyboardType="email-address"
+            onChangeText={setEmail}
+          />
+          {errors.email && (
+            <Text style={styles.error}>{errors.email}</Text>
+          )}
 
           <TextInput
             style={styles.input}
@@ -90,19 +132,28 @@ export default function Login({ navigation, setLoggedIN }) {
             secureTextEntry
             onChangeText={setPassword}
           />
-
-          {errors.password ? (
+          {errors.password && (
             <Text style={styles.error}>{errors.password}</Text>
-          ) : null}
+          )}
+
+          <TextInput
+            style={styles.input}
+            placeholder="Confirm Password"
+            value={confirmPassword}
+            secureTextEntry
+            onChangeText={setConfirmPassword}
+          />
+          {errors.confirmPassword && (
+            <Text style={styles.error}>{errors.confirmPassword}</Text>
+          )}
 
           <View style={styles.button}>
-            <Button title="Login" onPress={handleLogin} />
+            <Button title="Register" onPress={handleRegister} />
           </View>
 
-          {/* Updated Register Button */}
-          <TouchableOpacity style={styles.registerButton} onPress={handleRegister}>
-            <Text style={styles.registerText}>
-              Don't have an account? Register here
+          <TouchableOpacity style={styles.loginButton} onPress={goToLogin}>
+            <Text style={styles.loginText}>
+              Already have an account? Login here
             </Text>
           </TouchableOpacity>
         </ScrollView>
@@ -141,12 +192,12 @@ const styles = StyleSheet.create({
   button: {
     marginTop: 10,
   },
-  registerButton: {
+  loginButton: {
     marginTop: 20,
     padding: 15,
     alignItems: 'center',
   },
-  registerText: {
+  loginText: {
     color: "#007bff",
     fontSize: 16,
     textDecorationLine: 'underline',
